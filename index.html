@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Gluco Baba</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        :root {
+            --primary: #007AFF;
+            --bg: #F2F2F7;
+            --card: #FFFFFF;
+            --text: #000000;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            padding-bottom: 50px;
+        }
+        h1 { text-align: center; font-size: 24px; margin-bottom: 20px; }
+        
+        /* Cartes (Zones blanches) */
+        .card {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        /* Formulaire */
+        label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
+        select, input {
+            width: 100%;
+            padding: 12px; /* Gros pour les doigts */
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 18px; /* Gros texte */
+            margin-bottom: 15px;
+            box-sizing: border-box;
+            background-color: #fff;
+        }
+        
+        /* Boutons */
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            background-color: var(--primary);
+        }
+        .btn:active { opacity: 0.8; }
+        .btn-delete { background-color: #FF3B30; margin-top: 10px; }
+
+        /* Liste des repas */
+        ul { list-style: none; padding: 0; margin: 0; }
+        li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        li:last-child { border-bottom: none; }
+        .item-info { display: flex; flex-direction: column; }
+        .item-name { font-weight: 500; font-size: 17px; }
+        .item-weight { font-size: 14px; color: #888; }
+        .item-carb { font-weight: bold; font-size: 17px; color: var(--primary); }
+        .delete-icon { color: #FF3B30; font-size: 20px; padding-left: 15px; cursor: pointer; }
+
+        /* Total */
+        .total-section {
+            text-align: center;
+            margin-top: 10px;
+        }
+        .total-label { font-size: 16px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+        .total-value { font-size: 50px; font-weight: 800; color: #000; line-height: 1.2; }
+        .total-unit { font-size: 20px; color: #666; font-weight: normal; }
+
+    </style>
+</head>
+<body>
+
+    <h1>Gluco Baba</h1>
+
+    <div class="card">
+        <label>Catégorie</label>
+        <select id="categorySelect" onchange="updateFoodList()">
+            <option value="Plats">Plats</option>
+            <option value="Desserts">Desserts</option>
+            <option value="Divers">Divers (Pain, Fruits secs...)</option>
+            <option value="Boissons">Boissons</option>
+        </select>
+
+        <label>Aliment</label>
+        <select id="foodSelect">
+            </select>
+
+        <label>Poids (grammes)</label>
+        <input type="number" id="weightInput" placeholder="Ex: 150" inputmode="decimal">
+
+        <button class="btn" onclick="addItem()">Ajouter +</button>
+    </div>
+
+    <div class="card">
+        <ul id="mealList">
+            <li id="emptyMsg" style="color: #999; justify-content: center; font-style: italic;">Assiette vide</li>
+        </ul>
+    </div>
+
+    <div class="total-section">
+        <div class="total-label">Total Glucides</div>
+        <div class="total-value"><span id="totalValue">0.0</span> <span class="total-unit">g</span></div>
+    </div>
+
+    <button class="btn btn-delete" onclick="resetMeal()">Nouvelle Assiette 🗑️</button>
+
+<script>
+    // --- 1. BASE DE DONNÉES (Issue de vos images) ---
+    // Valeurs estimées pour 100g de produit
+    const database = {
+        "Plats": [
+            { name: "Brik à l'œuf (frit)", carb: 20 },
+            { name: "Brik au thon (frit)", carb: 20 },
+            { name: "Chakchouka", carb: 7 },
+            { name: "Chorba", carb: 12 },
+            { name: "Couscous à la viande", carb: 28 },
+            { name: "Couscous au poisson", carb: 28 },
+            { name: "Couscous aux légumes", carb: 25 },
+            { name: "Frites", carb: 35 },
+            { name: "Fricassé", carb: 35 },
+            { name: "Kamounia", carb: 4 },
+            { name: "Kefteji", carb: 8 },
+            { name: "Lablabi (sans pain)", carb: 18 },
+            { name: "Makarouna à la viande", carb: 28 },
+            { name: "Makarouna au poisson", carb: 28 },
+            { name: "Makarouna au poulet", carb: 28 },
+            { name: "Marka à la viande", carb: 6 },
+            { name: "Marka au poulet", carb: 6 },
+            { name: "Merguez", carb: 1 },
+            { name: "Mloukhia", carb: 7 },
+            { name: "Mosli au poisson", carb: 6 },
+            { name: "Mosli au poulet", carb: 6 },
+            { name: "Ojja", carb: 6 },
+            { name: "Pizza", carb: 30 },
+            { name: "Riz Djerbien", carb: 26 },
+            { name: "Salade tunisienne", carb: 4 },
+            { name: "Slata Méchouia", carb: 5 },
+            { name: "Sohleb", carb: 25 },
+            { name: "Tajine Tunisien", carb: 12 }
+        ],
+        "Desserts": [
+            { name: "Assida Zgougou", carb: 40 },
+            { name: "Banane", carb: 20 },
+            { name: "Bsissa", carb: 60 },
+            { name: "Clémentine/Mandarine", carb: 10 },
+            { name: "Compote", carb: 20 },
+            { name: "Dattes", carb: 70 },
+            { name: "Makroudh", carb: 65 },
+            { name: "Melon", carb: 8 },
+            { name: "Orange", carb: 10 },
+            { name: "Pastèque", carb: 7 },
+            { name: "Poire", carb: 13 },
+            { name: "Pomme", carb: 13 },
+            { name: "Raisin", carb: 17 },
+            { name: "Yaourt au fruit", carb: 16 }
+        ],
+        "Divers": [
+            { name: "Abricot sec", carb: 60 },
+            { name: "Amandes", carb: 10 },
+            { name: "Biscuits maison (Sablé)", carb: 65 },
+            { name: "Cacahuètes", carb: 14 },
+            { name: "Cranberries", carb: 80 },
+            { name: "Pain (Baguette)", carb: 55 },
+            { name: "Pain semoule", carb: 50 }
+        ],
+        "Boissons": [
+            { name: "Jus d'orange", carb: 10 },
+            { name: "Jus de fruit (Commerce)", carb: 12 },
+            { name: "Jus de pomme", carb: 11 }
+        ]
+    };
+
+    // --- 2. LOGIQUE DE L'APPLICATION ---
+    
+    let mealItems = [];
+
+    // Initialisation
+    window.onload = function() {
+        updateFoodList();
+    };
+
+    // Mettre à jour la liste des aliments quand on change de catégorie
+    function updateFoodList() {
+        const category = document.getElementById("categorySelect").value;
+        const foodSelect = document.getElementById("foodSelect");
+        foodSelect.innerHTML = ""; // Vider la liste
+
+        const foods = database[category];
+        // Trier alphabétiquement
+        foods.sort((a, b) => a.name.localeCompare(b.name));
+
+        foods.forEach(food => {
+            const option = document.createElement("option");
+            option.value = food.carb;
+            option.text = food.name;
+            foodSelect.appendChild(option);
+        });
+    }
+
+    // Ajouter un aliment au repas
+    function addItem() {
+        const foodSelect = document.getElementById("foodSelect");
+        const weightInput = document.getElementById("weightInput");
+        
+        const name = foodSelect.options[foodSelect.selectedIndex].text;
+        const carbPer100 = parseFloat(foodSelect.value);
+        let weight = parseFloat(weightInput.value);
+
+        if (!weight || weight <= 0) {
+            alert("Veuillez entrer un poids valide.");
+            return;
+        }
+
+        const totalCarb = (carbPer100 * weight) / 100;
+
+        mealItems.push({ name, weight, totalCarb });
+        weightInput.value = ""; // Effacer le champ poids
+        renderMeal();
+    }
+
+    // Supprimer un aliment spécifique
+    function deleteItem(index) {
+        mealItems.splice(index, 1);
+        renderMeal();
+    }
+
+    // Tout effacer
+    function resetMeal() {
+        if(confirm("Effacer tout le repas ?")) {
+            mealItems = [];
+            renderMeal();
+        }
+    }
+
+    // Afficher la liste et calculer le total
+    function renderMeal() {
+        const list = document.getElementById("mealList");
+        const emptyMsg = document.getElementById("emptyMsg");
+        const totalDisplay = document.getElementById("totalValue");
+        
+        // Nettoyer l'affichage actuel (sauf le message vide qu'on gère après)
+        list.innerHTML = "";
+
+        if (mealItems.length === 0) {
+            list.appendChild(emptyMsg);
+            emptyMsg.style.display = "flex";
+            totalDisplay.innerText = "0.0";
+            return;
+        }
+
+        let grandTotal = 0;
+
+        mealItems.forEach((item, index) => {
+            grandTotal += item.totalCarb;
+
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <div class="item-info">
+                    <span class="item-name">${item.name}</span>
+                    <span class="item-weight">${Math.round(item.weight)}g</span>
+                </div>
+                <div style="display:flex; align-items:center;">
+                    <span class="item-carb">${item.totalCarb.toFixed(1)}g</span>
+                    <span class="delete-icon" onclick="deleteItem(${index})">×</span>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+
+        totalDisplay.innerText = grandTotal.toFixed(1);
+    }
+</script>
+
+</body>
+</html>
