@@ -81,6 +81,5 @@ const database = {
     "Boissons": [
         { name: "Jus de fruits (100% ou commerce)", carb: 12 },
         { name: "Soda (Coca, etc.)", carb: 11 },
-        { name: "Sirop (Menthe, Grenadine)", carb: 80 }
     ]
 };
