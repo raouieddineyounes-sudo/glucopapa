@@ -21,15 +21,12 @@ const database = {
         { name: "Salade tunisienne", carb: 4 },
         { name: "Slata Méchouia", carb: 5 },
         { name: "Sohleb", carb: 25 },
-        { name: "Tajine Tunisien", carb: 12 }
+        { name: "Tajine Tunisien", carb: 8 }
     ],
     "Féculents & Plats": [
-        { name: "Bouchée à la reine (l'unité)", carb: 40 }, 
-        { name: "Frites (100g)", carb: 40 },
-        { name: "Kebab (avec pain, sans frites)", carb: 60 },
+        { name: "Frites (100g)", carb: 35 },
         { name: "Lentilles / Haricots secs (cuits)", carb: 15 },
         { name: "Maïs / Petits pois", carb: 20 },
-        { name: "Nem (l'unité)", carb: 20 },
         { name: "Pain (Baguette/Mie)", carb: 50 },
         { name: "Pain complet/Céréales", carb: 45 },
         { name: "Biscottes", carb: 70 },
