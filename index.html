@@ -39,7 +39,7 @@
             padding: 12px;
             border: 1px solid #ccc;
             border-radius: 8px;
-            font-size: 18px;
+            font-size: 18px; /* Gros texte pour lisibilité */
             margin-bottom: 15px;
             box-sizing: border-box;
             background-color: #fff;
@@ -74,7 +74,7 @@
         .item-name { font-weight: 500; font-size: 17px; }
         .item-weight { font-size: 14px; color: #888; }
         .item-carb { font-weight: bold; font-size: 17px; color: var(--primary); }
-        .delete-icon { color: #FF3B30; font-size: 20px; padding-left: 15px; cursor: pointer; padding: 10px; }
+        .delete-icon { color: #FF3B30; font-size: 24px; padding: 0 10px; cursor: pointer; }
 
         /* Total */
         .total-section { text-align: center; margin-top: 10px; }
@@ -90,6 +90,19 @@
             padding: 10px;
         }
 
+        /* Alerte Médicale */
+        .alert-medical {
+            background-color: #ffecec;
+            color: #d8000c;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 14px;
+            display: none; /* Caché par défaut */
+            border: 1px solid #d8000c;
+        }
+
     </style>
 </head>
 <body>
@@ -97,13 +110,11 @@
     <h1>Gluco Baba</h1>
 
     <div class="card">
+        <div id="medicalAlert" class="alert-medical">⚠️ ATTENTION : Ne pas faire de bolus immédiat pour la sonde !</div>
+
         <label>Catégorie</label>
         <select id="categorySelect" onchange="updateFoodList()">
-            <option value="Plats">Plats</option>
-            <option value="Desserts">Desserts</option>
-            <option value="Divers">Divers (Pain, Fruits secs...)</option>
-            <option value="Boissons">Boissons</option>
-        </select>
+            </select>
 
         <label>Aliment</label>
         <select id="foodSelect">
@@ -135,37 +146,64 @@
     
     let mealItems = [];
 
-    // Initialisation
+    // 1. Démarrage : On construit le menu dynamiquement
     window.onload = function() {
-        // On vérifie si la base de données est bien chargée depuis data.js
         if (typeof database === 'undefined') {
             alert("Erreur : Le fichier de données (data.js) n'est pas chargé.");
             return;
         }
+
+        const categorySelect = document.getElementById("categorySelect");
+        categorySelect.innerHTML = ""; // On vide tout
+
+        // On récupère toutes les clés (les noms des catégories) du fichier data.js
+        const categories = Object.keys(database);
+
+        // On crée une option pour chaque catégorie
+        categories.forEach(catName => {
+            const option = document.createElement("option");
+            option.value = catName;
+            option.text = catName;
+            categorySelect.appendChild(option);
+        });
+
+        // On lance l'affichage des aliments pour la première catégorie
         updateFoodList();
     };
 
-    // Mettre à jour la liste déroulante des aliments
+    // 2. Mettre à jour la liste des aliments
     function updateFoodList() {
-        const category = document.getElementById("categorySelect").value;
+        const categorySelect = document.getElementById("categorySelect");
         const foodSelect = document.getElementById("foodSelect");
-        foodSelect.innerHTML = ""; // Vider la liste
+        const medicalAlert = document.getElementById("medicalAlert");
+        
+        const selectedCategory = categorySelect.value;
+        
+        // Gestion de l'alerte visuelle si c'est la catégorie médicale
+        if (selectedCategory.includes("MÉDICAL") || selectedCategory.includes("NUIT")) {
+            medicalAlert.style.display = "block";
+        } else {
+            medicalAlert.style.display = "none";
+        }
 
-        if (database[category]) {
-            const foods = database[category];
-            // Trier alphabétiquement
+        // Remplissage des aliments
+        foodSelect.innerHTML = ""; // Vider la liste
+        
+        if (database[selectedCategory]) {
+            const foods = database[selectedCategory];
+            // Trier alphabétiquement les aliments
             foods.sort((a, b) => a.name.localeCompare(b.name));
 
             foods.forEach(food => {
                 const option = document.createElement("option");
-                option.value = food.carb;
+                option.value = food.carb; // La valeur est le taux de glucides
                 option.text = food.name;
                 foodSelect.appendChild(option);
             });
         }
     }
 
-    // Ajouter un aliment
+    // 3. Ajouter un aliment
     function addItem() {
         const foodSelect = document.getElementById("foodSelect");
         const weightInput = document.getElementById("weightInput");
@@ -176,9 +214,15 @@
         const carbPer100 = parseFloat(foodSelect.value);
         let weight = parseFloat(weightInput.value);
 
+        // Validation simple
         if (!weight || weight <= 0) {
-            alert("Veuillez entrer un poids valide.");
-            return;
+            // Si c'est un médicament à 0 glucide, on accepte sans poids ou avec poids 1
+            if (carbPer100 === 0) {
+                weight = 1; 
+            } else {
+                alert("Veuillez entrer un poids valide.");
+                return;
+            }
         }
 
         const totalCarb = (carbPer100 * weight) / 100;
@@ -188,13 +232,13 @@
         renderMeal();
     }
 
-    // Supprimer un aliment spécifique
+    // 4. Supprimer un aliment
     function deleteItem(index) {
         mealItems.splice(index, 1);
         renderMeal();
     }
 
-    // Tout effacer
+    // 5. Tout effacer
     function resetMeal() {
         if(mealItems.length > 0) {
             if(confirm("Effacer tout le repas ?")) {
@@ -204,18 +248,16 @@
         }
     }
 
-    // Afficher la liste et calculer le total
+    // 6. Afficher et Calculer
     function renderMeal() {
         const list = document.getElementById("mealList");
         const totalDisplay = document.getElementById("totalValue");
         
-        // Nettoyer l'affichage actuel
         list.innerHTML = "";
 
-        // Si la liste est vide, on affiche 0.0 et le message
         if (mealItems.length === 0) {
             list.innerHTML = '<div class="empty-msg">Assiette vide</div>';
-            totalDisplay.innerText = "0.0"; // FORCER LE ZÉRO ICI
+            totalDisplay.innerText = "0.0";
             return;
         }
 
@@ -225,13 +267,22 @@
             grandTotal += item.totalCarb;
 
             const li = document.createElement("li");
+            // Si c'est 0 glucide (médicament), on affiche différemment
+            let carbDisplay = item.totalCarb.toFixed(1) + "g";
+            let weightDisplay = Math.round(item.weight) + "g";
+            
+            if (item.totalCarb === 0) {
+                carbDisplay = "0g ✅"; // Indicateur visuel rassurant
+                if(item.weight === 1) weightDisplay = "-";
+            }
+
             li.innerHTML = `
                 <div class="item-info">
                     <span class="item-name">${item.name}</span>
-                    <span class="item-weight">${Math.round(item.weight)}g</span>
+                    <span class="item-weight">${weightDisplay}</span>
                 </div>
                 <div style="display:flex; align-items:center;">
-                    <span class="item-carb">${item.totalCarb.toFixed(1)}g</span>
+                    <span class="item-carb">${carbDisplay}</span>
                     <span class="delete-icon" onclick="deleteItem(${index})">×</span>
                 </div>
             `;
