@@ -23,7 +23,7 @@ const database = {
         { name: "Sohleb", carb: 25 },
         { name: "Tajine Tunisien", carb: 12 }
     ],
-    "Féculents & Plats (CHU)": [
+    "Féculents & Plats": [
         { name: "Bouchée à la reine (l'unité)", carb: 40 }, 
         { name: "Frites (100g)", carb: 40 },
         { name: "Kebab (avec pain, sans frites)", carb: 60 },
@@ -40,7 +40,7 @@ const database = {
         { name: "Quiche (1 part)", carb: 20 },
         { name: "Sandwich (Baguette classique)", carb: 50 }
     ],
-    "Fruits (CHU Grenoble)": [
+    "Fruits": [
         { name: "Abricot frais", carb: 9 }, 
         { name: "Ananas", carb: 11 },
         { name: "Banane", carb: 20 },
