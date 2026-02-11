@@ -23,7 +23,6 @@
         }
         h1 { text-align: center; font-size: 24px; margin-bottom: 20px; }
         
-        /* Cartes */
         .card {
             background: var(--card);
             border-radius: 12px;
@@ -32,7 +31,6 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
-        /* Formulaire */
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
         select, input {
             width: 100%;
@@ -45,7 +43,7 @@
             background-color: #fff;
         }
         
-        /* Barre de recherche Spéciale */
+        /* Barre de recherche */
         .search-container {
             position: relative;
             margin-bottom: 20px;
@@ -67,7 +65,7 @@
             overflow-y: auto;
             z-index: 1000;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            display: none; /* Caché par défaut */
+            display: none;
         }
         .search-result-item {
             padding: 12px;
@@ -75,16 +73,9 @@
             font-size: 17px;
             cursor: pointer;
         }
-        .search-result-item:active {
-            background-color: #eef;
-        }
-        .search-result-cat {
-            font-size: 12px;
-            color: #888;
-            float: right;
-        }
+        .search-result-item:active { background-color: #eef; }
+        .search-result-cat { font-size: 12px; color: #888; float: right; }
         
-        /* Boutons */
         .btn {
             width: 100%;
             padding: 15px;
@@ -99,7 +90,6 @@
         .btn:active { opacity: 0.8; }
         .btn-delete { background-color: #FF3B30; margin-top: 10px; }
 
-        /* Liste */
         ul { list-style: none; padding: 0; margin: 0; }
         li {
             display: flex;
@@ -115,21 +105,13 @@
         .item-carb { font-weight: bold; font-size: 17px; color: var(--primary); }
         .delete-icon { color: #FF3B30; font-size: 24px; padding: 0 10px; cursor: pointer; }
 
-        /* Total */
         .total-section { text-align: center; margin-top: 10px; }
         .total-label { font-size: 16px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
         .total-value { font-size: 50px; font-weight: 800; color: #000; line-height: 1.2; }
         .total-unit { font-size: 20px; color: #666; font-weight: normal; }
         
-        /* Message vide */
-        .empty-msg {
-            color: #999;
-            text-align: center;
-            font-style: italic;
-            padding: 10px;
-        }
+        .empty-msg { color: #999; text-align: center; font-style: italic; padding: 10px; }
 
-        /* Alerte Médicale */
         .alert-medical {
             background-color: #ffecec;
             color: #d8000c;
@@ -141,7 +123,6 @@
             display: none;
             border: 1px solid #d8000c;
         }
-
     </style>
 </head>
 <body>
@@ -150,19 +131,17 @@
 
     <div class="card">
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="🔍 Rechercher un plat (ex: couscous)..." onkeyup="handleSearch()" autocomplete="off">
+            <input type="text" id="searchInput" placeholder="🔍 Rechercher (ex: pain, couscous)..." onkeyup="handleSearch()" autocomplete="off">
             <div id="searchResults" class="search-results-list"></div>
         </div>
 
         <div id="medicalAlert" class="alert-medical">⚠️ ATTENTION : Ne pas faire de bolus immédiat pour la sonde !</div>
 
         <label>Catégorie</label>
-        <select id="categorySelect" onchange="updateFoodList()">
-        </select>
+        <select id="categorySelect" onchange="updateFoodList()"></select>
 
         <label>Aliment Sélectionné</label>
-        <select id="foodSelect">
-        </select>
+        <select id="foodSelect"></select>
 
         <label>Poids (grammes)</label>
         <input type="number" id="weightInput" placeholder="Ex: 150" inputmode="decimal">
@@ -171,9 +150,7 @@
     </div>
 
     <div class="card">
-        <ul id="mealList">
-            <div class="empty-msg">Assiette vide</div>
-        </ul>
+        <ul id="mealList"><div class="empty-msg">Assiette vide</div></ul>
     </div>
 
     <div class="total-section">
@@ -189,28 +166,24 @@
     // --- LOGIQUE DE L'APPLICATION ---
     
     let mealItems = [];
-    let allFoodsFlat = []; // Pour la recherche
+    let allFoodsFlat = [];
 
-    // 1. Démarrage
     window.onload = function() {
         if (typeof database === 'undefined') {
             alert("Erreur : Le fichier de données (data.js) n'est pas chargé.");
             return;
         }
-
         const categorySelect = document.getElementById("categorySelect");
         categorySelect.innerHTML = "";
-
-        // Remplir les catégories et préparer la liste plate pour la recherche
-        const categories = Object.keys(database);
         
+        const categories = Object.keys(database);
         categories.forEach(catName => {
             const option = document.createElement("option");
             option.value = catName;
             option.text = catName;
             categorySelect.appendChild(option);
 
-            // Ajouter les aliments de cette catégorie à la liste de recherche globale
+            // Préparer la recherche
             database[catName].forEach(food => {
                 allFoodsFlat.push({
                     name: food.name,
@@ -220,10 +193,8 @@
             });
         });
 
-        // Démarrer sur la première catégorie
         updateFoodList();
         
-        // Fermer la recherche si on clique ailleurs
         document.addEventListener('click', function(e) {
             if (e.target.id !== 'searchInput') {
                 document.getElementById('searchResults').style.display = 'none';
@@ -231,9 +202,8 @@
         });
     };
 
-    // --- MOTEUR DE RECHERCHE ET TOLÉRANCE ---
+    // --- MOTEUR DE RECHERCHE OPTIMISÉ ---
 
-    // Algorithme de Levenshtein (Distance entre deux mots pour gérer les fautes)
     function levenshtein(a, b) {
         const matrix = [];
         for (let i = 0; i <= b.length; i++) matrix[i] = [i];
@@ -250,7 +220,6 @@
         return matrix[b.length][a.length];
     }
 
-    // Normaliser (Enlever accents et minuscules)
     function normalize(str) {
         return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
     }
@@ -260,60 +229,66 @@
         const filter = normalize(input.value);
         const resultsDiv = document.getElementById('searchResults');
         
+        // On commence à chercher dès 2 lettres (pour "pa" -> pain)
         if (filter.length < 2) {
             resultsDiv.style.display = 'none';
             return;
         }
 
         resultsDiv.innerHTML = '';
-        let foundCount = 0;
 
-        // On filtre la liste globale
         const matches = allFoodsFlat.filter(item => {
             const normName = normalize(item.name);
             
-            // 1. Recherche exacte ou partielle (ex: "Cous")
+            // 1. Contient exactement le texte
             if (normName.includes(filter)) return true;
 
-            // 2. Recherche tolérante (Fuzzy) si le mot est assez long
-            // Si le mot tapé a moins de 3 fautes par rapport au plat
-            if (filter.length > 3) {
-                const distance = levenshtein(filter, normName);
-                // On tolère une distance de 3 (ex: moukya -> mloukhia)
-                if (distance <= 3) return true;
+            // 2. Recherche mot par mot (C'est ici qu'on gère "Pain (Baguette)")
+            // On remplace parenthèses, slashs, tirets par des espaces, puis on coupe
+            const cleanName = normName.replace(/[()\/\\-]/g, " "); 
+            const words = cleanName.split(/\s+/); // On coupe par les espaces
+
+            for (let word of words) {
+                // On ignore les mots d'1 lettre
+                if (word.length < 2) continue;
+
+                const distance = levenshtein(filter, word);
+                
+                // --- RÈGLE DE TOLÉRANCE 2 FAUTES ---
+                // Par défaut on accepte 2 fautes
+                let allowedErrors = 2;
+
+                // Sauf si le mot cherché est très court (3 lettres ou moins), on reste à 1 faute
+                // pour éviter trop de faux positifs (ex: "Riz" ne doit pas matcher "Gaz")
+                if (filter.length <= 3) allowedErrors = 1;
+
+                // Si le mot est très long (> 6 lettres), on peut être encore plus sympa (3 fautes)
+                if (filter.length > 6) allowedErrors = 3;
+
+                if (distance <= allowedErrors) return true;
             }
+            
             return false;
         });
 
-        // Affichage des résultats (Max 10)
+        // Affichage (Max 10)
         matches.slice(0, 10).forEach(item => {
             const div = document.createElement('div');
             div.className = 'search-result-item';
             div.innerHTML = `${item.name} <span class="search-result-cat">${item.category}</span>`;
-            
-            div.onclick = function() {
-                selectSearchResult(item);
-            };
-            
+            div.onclick = function() { selectSearchResult(item); };
             resultsDiv.appendChild(div);
         });
 
-        if (matches.length > 0) {
-            resultsDiv.style.display = 'block';
-        } else {
-            resultsDiv.style.display = 'none';
-        }
+        if (matches.length > 0) resultsDiv.style.display = 'block';
+        else resultsDiv.style.display = 'none';
     }
 
     function selectSearchResult(item) {
-        // 1. Mettre à jour la catégorie
         const catSelect = document.getElementById('categorySelect');
         catSelect.value = item.category;
-        
-        // 2. Mettre à jour la liste des aliments pour cette catégorie
         updateFoodList();
         
-        // 3. Sélectionner le bon aliment dans la liste
         const foodSelect = document.getElementById('foodSelect');
         for (let i = 0; i < foodSelect.options.length; i++) {
             if (foodSelect.options[i].text === item.name) {
@@ -322,37 +297,30 @@
             }
         }
 
-        // 4. Nettoyage
         document.getElementById('searchResults').style.display = 'none';
-        document.getElementById('searchInput').value = ""; // Vider la recherche
-        document.getElementById('weightInput').focus(); // Mettre le curseur sur le poids
+        document.getElementById('searchInput').value = "";
+        document.getElementById('weightInput').focus();
     }
 
-    // --- FIN MOTEUR DE RECHERCHE ---
+    // --- FIN RECHERCHE ---
 
-
-    // 2. Mettre à jour la liste des aliments (Standard)
     function updateFoodList() {
         const categorySelect = document.getElementById("categorySelect");
         const foodSelect = document.getElementById("foodSelect");
         const medicalAlert = document.getElementById("medicalAlert");
-        
         const selectedCategory = categorySelect.value;
         
-        // Gestion alerte médicale
         if (selectedCategory.includes("MÉDICAL") || selectedCategory.includes("NUIT")) {
             medicalAlert.style.display = "block";
         } else {
             medicalAlert.style.display = "none";
         }
 
-        // Remplissage
         foodSelect.innerHTML = "";
         
         if (database[selectedCategory]) {
             const foods = database[selectedCategory];
             foods.sort((a, b) => a.name.localeCompare(b.name));
-
             foods.forEach(food => {
                 const option = document.createElement("option");
                 option.value = food.carb;
@@ -362,7 +330,6 @@
         }
     }
 
-    // 3. Ajouter un aliment
     function addItem() {
         const foodSelect = document.getElementById("foodSelect");
         const weightInput = document.getElementById("weightInput");
@@ -374,38 +341,28 @@
         let weight = parseFloat(weightInput.value);
 
         if (!weight || weight <= 0) {
-            if (carbPer100 === 0) {
-                weight = 1; 
-            } else {
-                alert("Veuillez entrer un poids valide.");
-                return;
-            }
+            if (carbPer100 === 0) weight = 1; 
+            else { alert("Veuillez entrer un poids valide."); return; }
         }
 
         const totalCarb = (carbPer100 * weight) / 100;
-
         mealItems.push({ name, weight, totalCarb });
         weightInput.value = ""; 
         renderMeal();
     }
 
-    // 4. Supprimer
     function deleteItem(index) {
         mealItems.splice(index, 1);
         renderMeal();
     }
 
-    // 5. Tout effacer
     function resetMeal() {
-        if(mealItems.length > 0) {
-            if(confirm("Effacer tout le repas ?")) {
-                mealItems = [];
-                renderMeal();
-            }
+        if(mealItems.length > 0 && confirm("Effacer tout le repas ?")) {
+            mealItems = [];
+            renderMeal();
         }
     }
 
-    // 6. Afficher et Calculer
     function renderMeal() {
         const list = document.getElementById("mealList");
         const totalDisplay = document.getElementById("totalValue");
@@ -419,10 +376,8 @@
         }
 
         let grandTotal = 0;
-
         mealItems.forEach((item, index) => {
             grandTotal += item.totalCarb;
-
             const li = document.createElement("li");
             let carbDisplay = item.totalCarb.toFixed(1) + "g";
             let weightDisplay = Math.round(item.weight) + "g";
@@ -444,7 +399,6 @@
             `;
             list.appendChild(li);
         });
-
         totalDisplay.innerText = grandTotal.toFixed(1);
     }
 </script>
