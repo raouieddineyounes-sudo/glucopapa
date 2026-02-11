@@ -52,6 +52,10 @@
             border: 2px solid var(--primary);
             background-color: #f0f8ff;
             font-weight: bold;
+            padding-left: 40px; /* Place pour la loupe */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: 12px center;
         }
         .search-results-list {
             position: absolute;
@@ -68,13 +72,13 @@
             display: none;
         }
         .search-result-item {
-            padding: 12px;
+            padding: 15px;
             border-bottom: 1px solid #eee;
-            font-size: 17px;
+            font-size: 18px;
             cursor: pointer;
         }
         .search-result-item:active { background-color: #eef; }
-        .search-result-cat { font-size: 12px; color: #888; float: right; }
+        .search-result-cat { font-size: 13px; color: #888; float: right; margin-top: 3px; }
         
         .btn {
             width: 100%;
@@ -131,7 +135,7 @@
 
     <div class="card">
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="🔍 Rechercher (ex: pain, couscous)..." onkeyup="handleSearch()" autocomplete="off">
+            <input type="text" id="searchInput" placeholder="Rechercher (ex: pain, couscous)..." oninput="handleSearch()" autocomplete="off">
             <div id="searchResults" class="search-results-list"></div>
         </div>
 
@@ -202,7 +206,7 @@
         });
     };
 
-    // --- MOTEUR DE RECHERCHE ULTRA TOLÉRANT ---
+    // --- MOTEUR DE RECHERCHE AMÉLIORÉ ---
 
     function levenshtein(a, b) {
         const matrix = [];
@@ -229,6 +233,7 @@
         const filter = normalize(input.value);
         const resultsDiv = document.getElementById('searchResults');
         
+        // On cherche dès 2 caractères
         if (filter.length < 2) {
             resultsDiv.style.display = 'none';
             return;
@@ -239,31 +244,31 @@
         const matches = allFoodsFlat.filter(item => {
             const normName = normalize(item.name);
             
-            // 1. Recherche EXACTE (contient la suite de lettres)
+            // 1. Recherche EXACTE (Contient le texte) - Priorité
             if (normName.includes(filter)) return true;
 
-            // 2. Recherche INTELLIGENTE (Fuzzy + Préfixe)
-            // On sépare les mots : "Pain (Baguette)" -> ["pain", "baguette"]
+            // 2. Recherche FLOU (Gère les fautes de début/fin)
             const cleanName = normName.replace(/[()\/\\-]/g, " "); 
             const words = cleanName.split(/\s+/); 
 
             for (let word of words) {
                 if (word.length < 2) continue;
 
-                // ASTUCE : On ne compare que la longueur de ce qu'on a tapé !
-                // Si je tape "ceois" (5 lettres), je compare avec les 5 premières lettres de "croissant"
-                // Donc je compare "ceois" avec "crois" -> distance = 1.
+                // CORRECTION IMPORTANTE : 
+                // On compare ce qu'on tape (ex: "rois") avec le début du mot MAIS 
+                // on prend une marge de +2 lettres.
+                // Ex: "rois" (4 lettres) vs "croiss" (6 lettres) -> Distance est petite.
                 
-                // Si le mot de la base est plus court que ce qu'on tape, on prend tout le mot
-                const lengthToCompare = Math.min(filter.length, word.length);
-                const subWord = word.substring(0, lengthToCompare);
-                const subInput = filter.substring(0, lengthToCompare);
+                const lenToCheck = filter.length + 2; 
+                const subWord = word.substring(0, lenToCheck); // On coupe un peu plus large
 
-                const distance = levenshtein(subInput, subWord);
+                const distance = levenshtein(filter, subWord);
                 
-                // Tolérance aux fautes
-                let allowedErrors = 2; // Par défaut on est gentil
-                if (filter.length <= 3) allowedErrors = 1; // Si mot court, un peu plus strict
+                // Définition de la tolérance
+                let allowedErrors = 2; // Standard : 2 erreurs autorisées
+                
+                // Si le mot est très court (3 lettres max), on est plus strict (1 faute)
+                if (filter.length <= 3) allowedErrors = 1; 
                 
                 if (distance <= allowedErrors) return true;
             }
