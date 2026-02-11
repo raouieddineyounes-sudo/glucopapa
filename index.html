@@ -21,8 +21,8 @@
             padding: 20px;
             padding-bottom: 50px;
         }
-        h1 { text-align: center; font-size: 24px; margin-bottom: 20px; }
         
+        /* Cartes */
         .card {
             background: var(--card);
             border-radius: 12px;
@@ -31,6 +31,7 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
+        /* Formulaire */
         label { display: block; margin-bottom: 8px; font-weight: 600; color: #555; }
         select, input {
             width: 100%;
@@ -80,6 +81,7 @@
         .search-result-item:active { background-color: #eef; }
         .search-result-cat { font-size: 13px; color: #888; float: right; margin-top: 3px; }
         
+        /* Boutons */
         .btn {
             width: 100%;
             padding: 15px;
@@ -94,6 +96,7 @@
         .btn:active { opacity: 0.8; }
         .btn-delete { background-color: #FF3B30; margin-top: 10px; }
 
+        /* Liste */
         ul { list-style: none; padding: 0; margin: 0; }
         li {
             display: flex;
@@ -109,6 +112,7 @@
         .item-carb { font-weight: bold; font-size: 17px; color: var(--primary); }
         .delete-icon { color: #FF3B30; font-size: 24px; padding: 0 10px; cursor: pointer; }
 
+        /* Total */
         .total-section { text-align: center; margin-top: 10px; }
         .total-label { font-size: 16px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
         .total-value { font-size: 50px; font-weight: 800; color: #000; line-height: 1.2; }
@@ -127,11 +131,19 @@
             display: none;
             border: 1px solid #d8000c;
         }
+
+        /* TITRE DISCRET EN BAS */
+        .footer-title {
+            text-align: center;
+            font-size: 14px;
+            color: #b0b0b0; /* Gris discret */
+            margin-top: 40px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
-
-    <h1>Gluco Baba</h1>
 
     <div class="card">
         <div class="search-container">
@@ -164,13 +176,15 @@
 
     <button class="btn btn-delete" onclick="resetMeal()">Nouvelle Assiette 🗑️</button>
 
+    <div class="footer-title">Gluco Baba</div>
+
 <script src="data.js"></script>
 
 <script>
     // --- LOGIQUE DE L'APPLICATION ---
     
     let mealItems = [];
-    let allFoodsFlat = []; // Contiendra TOUS les aliments pour la recherche et la catégorie "Tout"
+    let allFoodsFlat = []; 
 
     window.onload = function() {
         if (typeof database === 'undefined') {
@@ -180,13 +194,13 @@
         const categorySelect = document.getElementById("categorySelect");
         categorySelect.innerHTML = "";
         
-        // 1. AJOUT DE LA CATÉGORIE "-- TOUT --" EN PREMIER
+        // 1. Catégorie "Tout"
         const allOption = document.createElement("option");
         allOption.value = "All";
         allOption.text = "-- Tout --";
         categorySelect.appendChild(allOption);
 
-        // 2. AJOUT DES AUTRES CATÉGORIES
+        // 2. Autres catégories
         const categories = Object.keys(database);
         categories.forEach(catName => {
             const option = document.createElement("option");
@@ -194,7 +208,6 @@
             option.text = catName;
             categorySelect.appendChild(option);
 
-            // On remplit la liste plate globale
             database[catName].forEach(food => {
                 allFoodsFlat.push({
                     name: food.name,
@@ -204,7 +217,7 @@
             });
         });
 
-        // 3. SELECTIONNER "-- TOUT --" PAR DÉFAUT
+        // Sélection par défaut
         categorySelect.value = "All";
         updateFoodList();
         
@@ -286,8 +299,7 @@
 
     function selectSearchResult(item) {
         const catSelect = document.getElementById('categorySelect');
-        // Si on cherche, on bascule sur la catégorie spécifique pour que ce soit clair
-        catSelect.value = item.category;
+        catSelect.value = item.category; // On met la vraie catégorie pour info
         updateFoodList();
         
         const foodSelect = document.getElementById('foodSelect');
@@ -303,7 +315,7 @@
         document.getElementById('weightInput').focus();
     }
 
-    // --- MISE A JOUR DE LA LISTE (GESTION DU "-- TOUT --") ---
+    // --- LISTE ---
 
     function updateFoodList() {
         const categorySelect = document.getElementById("categorySelect");
@@ -311,7 +323,6 @@
         const medicalAlert = document.getElementById("medicalAlert");
         const selectedCategory = categorySelect.value;
         
-        // Alerte médicale seulement si la catégorie spécifique est choisie
         if (selectedCategory.includes("MÉDICAL") || selectedCategory.includes("NUIT")) {
             medicalAlert.style.display = "block";
         } else {
@@ -322,21 +333,14 @@
         
         let foodsToDisplay = [];
 
-        // SI "TOUT" EST SÉLECTIONNÉ
         if (selectedCategory === "All") {
-            // On utilise la liste plate qu'on a déjà créée (allFoodsFlat)
-            // On fait une copie pour ne pas casser la liste originale lors du tri
             foodsToDisplay = [...allFoodsFlat]; 
-        } 
-        // SINON (Catégorie normale)
-        else if (database[selectedCategory]) {
+        } else if (database[selectedCategory]) {
             foodsToDisplay = database[selectedCategory];
         }
 
-        // On trie alphabétiquement
         foodsToDisplay.sort((a, b) => a.name.localeCompare(b.name));
 
-        // On remplit le menu déroulant
         foodsToDisplay.forEach(food => {
             const option = document.createElement("option");
             option.value = food.carb;
