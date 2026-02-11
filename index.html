@@ -52,7 +52,7 @@
             border: 2px solid var(--primary);
             background-color: #f0f8ff;
             font-weight: bold;
-            padding-left: 40px; /* Place pour la loupe */
+            padding-left: 40px; 
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23999' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: 12px center;
@@ -170,7 +170,7 @@
     // --- LOGIQUE DE L'APPLICATION ---
     
     let mealItems = [];
-    let allFoodsFlat = [];
+    let allFoodsFlat = []; // Contiendra TOUS les aliments pour la recherche et la catégorie "Tout"
 
     window.onload = function() {
         if (typeof database === 'undefined') {
@@ -180,6 +180,13 @@
         const categorySelect = document.getElementById("categorySelect");
         categorySelect.innerHTML = "";
         
+        // 1. AJOUT DE LA CATÉGORIE "-- TOUT --" EN PREMIER
+        const allOption = document.createElement("option");
+        allOption.value = "All";
+        allOption.text = "-- Tout --";
+        categorySelect.appendChild(allOption);
+
+        // 2. AJOUT DES AUTRES CATÉGORIES
         const categories = Object.keys(database);
         categories.forEach(catName => {
             const option = document.createElement("option");
@@ -187,7 +194,7 @@
             option.text = catName;
             categorySelect.appendChild(option);
 
-            // Préparer la recherche
+            // On remplit la liste plate globale
             database[catName].forEach(food => {
                 allFoodsFlat.push({
                     name: food.name,
@@ -197,6 +204,8 @@
             });
         });
 
+        // 3. SELECTIONNER "-- TOUT --" PAR DÉFAUT
+        categorySelect.value = "All";
         updateFoodList();
         
         document.addEventListener('click', function(e) {
@@ -206,7 +215,7 @@
         });
     };
 
-    // --- MOTEUR DE RECHERCHE AMÉLIORÉ ---
+    // --- MOTEUR DE RECHERCHE ---
 
     function levenshtein(a, b) {
         const matrix = [];
@@ -233,7 +242,6 @@
         const filter = normalize(input.value);
         const resultsDiv = document.getElementById('searchResults');
         
-        // On cherche dès 2 caractères
         if (filter.length < 2) {
             resultsDiv.style.display = 'none';
             return;
@@ -243,40 +251,27 @@
 
         const matches = allFoodsFlat.filter(item => {
             const normName = normalize(item.name);
-            
-            // 1. Recherche EXACTE (Contient le texte) - Priorité
             if (normName.includes(filter)) return true;
 
-            // 2. Recherche FLOU (Gère les fautes de début/fin)
             const cleanName = normName.replace(/[()\/\\-]/g, " "); 
             const words = cleanName.split(/\s+/); 
 
             for (let word of words) {
                 if (word.length < 2) continue;
-
-                // CORRECTION IMPORTANTE : 
-                // On compare ce qu'on tape (ex: "rois") avec le début du mot MAIS 
-                // on prend une marge de +2 lettres.
-                // Ex: "rois" (4 lettres) vs "croiss" (6 lettres) -> Distance est petite.
                 
                 const lenToCheck = filter.length + 2; 
-                const subWord = word.substring(0, lenToCheck); // On coupe un peu plus large
+                const subWord = word.substring(0, lenToCheck);
 
                 const distance = levenshtein(filter, subWord);
                 
-                // Définition de la tolérance
-                let allowedErrors = 2; // Standard : 2 erreurs autorisées
-                
-                // Si le mot est très court (3 lettres max), on est plus strict (1 faute)
+                let allowedErrors = 2; 
                 if (filter.length <= 3) allowedErrors = 1; 
                 
                 if (distance <= allowedErrors) return true;
             }
-            
             return false;
         });
 
-        // Affichage (Max 10)
         matches.slice(0, 10).forEach(item => {
             const div = document.createElement('div');
             div.className = 'search-result-item';
@@ -291,6 +286,7 @@
 
     function selectSearchResult(item) {
         const catSelect = document.getElementById('categorySelect');
+        // Si on cherche, on bascule sur la catégorie spécifique pour que ce soit clair
         catSelect.value = item.category;
         updateFoodList();
         
@@ -307,7 +303,7 @@
         document.getElementById('weightInput').focus();
     }
 
-    // --- FIN RECHERCHE ---
+    // --- MISE A JOUR DE LA LISTE (GESTION DU "-- TOUT --") ---
 
     function updateFoodList() {
         const categorySelect = document.getElementById("categorySelect");
@@ -315,6 +311,7 @@
         const medicalAlert = document.getElementById("medicalAlert");
         const selectedCategory = categorySelect.value;
         
+        // Alerte médicale seulement si la catégorie spécifique est choisie
         if (selectedCategory.includes("MÉDICAL") || selectedCategory.includes("NUIT")) {
             medicalAlert.style.display = "block";
         } else {
@@ -323,16 +320,29 @@
 
         foodSelect.innerHTML = "";
         
-        if (database[selectedCategory]) {
-            const foods = database[selectedCategory];
-            foods.sort((a, b) => a.name.localeCompare(b.name));
-            foods.forEach(food => {
-                const option = document.createElement("option");
-                option.value = food.carb;
-                option.text = food.name;
-                foodSelect.appendChild(option);
-            });
+        let foodsToDisplay = [];
+
+        // SI "TOUT" EST SÉLECTIONNÉ
+        if (selectedCategory === "All") {
+            // On utilise la liste plate qu'on a déjà créée (allFoodsFlat)
+            // On fait une copie pour ne pas casser la liste originale lors du tri
+            foodsToDisplay = [...allFoodsFlat]; 
+        } 
+        // SINON (Catégorie normale)
+        else if (database[selectedCategory]) {
+            foodsToDisplay = database[selectedCategory];
         }
+
+        // On trie alphabétiquement
+        foodsToDisplay.sort((a, b) => a.name.localeCompare(b.name));
+
+        // On remplit le menu déroulant
+        foodsToDisplay.forEach(food => {
+            const option = document.createElement("option");
+            option.value = food.carb;
+            option.text = food.name;
+            foodSelect.appendChild(option);
+        });
     }
 
     function addItem() {
