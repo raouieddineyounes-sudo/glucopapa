@@ -26,7 +26,7 @@ const database = {
         { name: "Lentilles (cuits)", carb: 15 },
         { name: "Petits pois", carb: 20 },
         { name: "Maïs", carb: 20 },
-        { name: "Pain de mie)", carb: 50 },
+        { name: "Pain de mie", carb: 50 },
         { name: "Pain baguette", carb: 50 },
         { name: "Pain complet/Céréales", carb: 45 },
         { name: "Biscottes", carb: 70 },
