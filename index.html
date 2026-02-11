@@ -202,7 +202,7 @@
         });
     };
 
-    // --- MOTEUR DE RECHERCHE OPTIMISÉ ---
+    // --- MOTEUR DE RECHERCHE ULTRA TOLÉRANT ---
 
     function levenshtein(a, b) {
         const matrix = [];
@@ -229,7 +229,6 @@
         const filter = normalize(input.value);
         const resultsDiv = document.getElementById('searchResults');
         
-        // On commence à chercher dès 2 lettres (pour "pa" -> pain)
         if (filter.length < 2) {
             resultsDiv.style.display = 'none';
             return;
@@ -240,31 +239,32 @@
         const matches = allFoodsFlat.filter(item => {
             const normName = normalize(item.name);
             
-            // 1. Contient exactement le texte
+            // 1. Recherche EXACTE (contient la suite de lettres)
             if (normName.includes(filter)) return true;
 
-            // 2. Recherche mot par mot (C'est ici qu'on gère "Pain (Baguette)")
-            // On remplace parenthèses, slashs, tirets par des espaces, puis on coupe
+            // 2. Recherche INTELLIGENTE (Fuzzy + Préfixe)
+            // On sépare les mots : "Pain (Baguette)" -> ["pain", "baguette"]
             const cleanName = normName.replace(/[()\/\\-]/g, " "); 
-            const words = cleanName.split(/\s+/); // On coupe par les espaces
+            const words = cleanName.split(/\s+/); 
 
             for (let word of words) {
-                // On ignore les mots d'1 lettre
                 if (word.length < 2) continue;
 
-                const distance = levenshtein(filter, word);
+                // ASTUCE : On ne compare que la longueur de ce qu'on a tapé !
+                // Si je tape "ceois" (5 lettres), je compare avec les 5 premières lettres de "croissant"
+                // Donc je compare "ceois" avec "crois" -> distance = 1.
                 
-                // --- RÈGLE DE TOLÉRANCE 2 FAUTES ---
-                // Par défaut on accepte 2 fautes
-                let allowedErrors = 2;
+                // Si le mot de la base est plus court que ce qu'on tape, on prend tout le mot
+                const lengthToCompare = Math.min(filter.length, word.length);
+                const subWord = word.substring(0, lengthToCompare);
+                const subInput = filter.substring(0, lengthToCompare);
 
-                // Sauf si le mot cherché est très court (3 lettres ou moins), on reste à 1 faute
-                // pour éviter trop de faux positifs (ex: "Riz" ne doit pas matcher "Gaz")
-                if (filter.length <= 3) allowedErrors = 1;
-
-                // Si le mot est très long (> 6 lettres), on peut être encore plus sympa (3 fautes)
-                if (filter.length > 6) allowedErrors = 3;
-
+                const distance = levenshtein(subInput, subWord);
+                
+                // Tolérance aux fautes
+                let allowedErrors = 2; // Par défaut on est gentil
+                if (filter.length <= 3) allowedErrors = 1; // Si mot court, un peu plus strict
+                
                 if (distance <= allowedErrors) return true;
             }
             
